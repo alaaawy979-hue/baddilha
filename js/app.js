@@ -701,7 +701,7 @@ function renderStatus() {
   const dot = $('.sync-dot');
   const s = S.status;
   dot.dataset.s = s.state === 'ok' && s.online ? 'live' : s.state;
-  $('#syncBtn').title = { ok: s.online ? 'متزامن لحظيًا' : 'متزامن', syncing: 'جارٍ المزامنة', error: 'تعذّرت المزامنة', offline: 'بدون إنترنت', local: 'محلي فقط', idle: '' }[s.state] || '';
+  $('#syncBtn').title = { ok: s.online ? 'متزامن لحظيًا — اضغط للمزامنة الآن' : 'متزامن — اضغط للمزامنة الآن', syncing: 'جارٍ المزامنة', error: 'تعذّرت المزامنة', offline: 'بدون إنترنت', local: 'محلي فقط', idle: '' }[s.state] || '';
 }
 
 // ===== الأحداث =====
@@ -741,7 +741,16 @@ function bind() {
 
   $('#fab').onclick = () => openEditor();
   $('#settingsBtn').onclick = () => openSettings();
-  $('#syncBtn').onclick = () => { S.wake(); openSettings(); };
+  // النقطة: تزامن الآن وتعرض الحالة (الإعدادات لها زر الترس)
+  $('#syncBtn').onclick = async () => {
+    buzz();
+    toast('⏳ جارٍ المزامنة…');
+    await S.sync();
+    const s = S.status;
+    if (s.state === 'ok') toast(`✅ متزامن${s.online ? ' لحظيًا' : ''} — ${num(S.list().length)} عنصر`);
+    else if (s.state === 'offline') toast('📴 ما فيه إنترنت — بيتزامن تلقائيًا أول ما يرجع');
+    else toast(`⚠️ ${s.error || 'تعذّرت المزامنة'}`, { label: 'الإعدادات', run: () => openSettings() });
+  };
   $('#search').addEventListener('input', (e) => { view.q = e.target.value; render(); });
 
   document.addEventListener('keydown', (e) => {
