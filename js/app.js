@@ -4,7 +4,6 @@ import { CONFIG, VERSION } from './config.js';
 import { cloudReady } from './cloud.js';
 import { TEMPLATES, ROOMS, EMOJIS, REMIND_OPTIONS } from './templates.js';
 import * as P from './push.js';
-import { scriptableCode } from './widget.js';
 
 // ===== أيقونات =====
 const I = (d, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
@@ -23,7 +22,6 @@ const ICON = {
   link: I('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'),
   down: I('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>'),
   up: I('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/>'),
-  phone: I('<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>'),
   clock: I('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'),
 };
 
@@ -513,21 +511,6 @@ async function openSettings(focus) {
       </div>
     </section>
 
-    <section class="set-group" id="sec-widget">
-      <h3>${ICON.phone.replace('<svg', '<svg width="18" height="18"')} ودجت الآيفون</h3>
-      ${cloud && meta.readToken ? `
-        <p>يعرض أقرب المواعيد على الشاشة الرئيسية وشاشة القفل، ويتحدث تلقائيًا.</p>
-        <ol class="steps">
-          <li>نزّل تطبيق <b>Scriptable</b> المجاني من App Store</li>
-          <li>اضغط «نسخ سكربت الودجت» تحت</li>
-          <li>في Scriptable اضغط <b>+</b> والصق، وسمّ السكربت «بدّلها»</li>
-          <li>اضغط مطولًا على الشاشة الرئيسية ← <b>+</b> ← Scriptable ← اختر الحجم</li>
-          <li>اضغط على الودجت مطولًا ← تعديل الودجت ← Script: <b>بدّلها</b></li>
-        </ol>
-        <button class="btn primary small" id="copyWidget">${ICON.copy} نسخ سكربت الودجت</button>
-      ` : `<p>${cloud ? 'انتظر اكتمال أول مزامنة ثم ارجع هنا.' : 'يحتاج تفعيل السحابة.'}</p>`}
-    </section>
-
     ${feedUrl ? `<section class="set-group">
       <h3>${ICON.cal.replace('<svg', '<svg width="18" height="18"')} تقويم الجوال والكمبيوتر</h3>
       <p>اشترك مرة وحدة وتظهر كل مواعيد التغيير في تقويمك مع تنبيهاتها، وتتحدث تلقائيًا. (على الآيفون: بعد الاشتراك أطفئ خيار «إزالة التنبيهات»).</p>
@@ -596,7 +579,6 @@ async function openSettings(focus) {
       S.prefs.remind = S.prefs.remind.includes(d) ? S.prefs.remind.filter((x) => x !== d) : [...S.prefs.remind, d];
       S.savePrefs(); c.setAttribute('aria-pressed', S.prefs.remind.includes(d));
     };
-    on('#copyWidget', async () => { await copy(scriptableCode(meta.readToken)); toast('تم النسخ — الصقه في Scriptable'); });
     on('#copyFeed', async () => { await copy(feedUrl); toast('تم نسخ رابط التقويم'); });
     $('#theme', root).onclick = (e) => {
       const c = e.target.closest('.chip'); if (!c) return;

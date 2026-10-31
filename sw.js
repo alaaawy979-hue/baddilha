@@ -1,9 +1,9 @@
 // بدّلها — عامل الخدمة: يشتغل بدون إنترنت + يستقبل التنبيهات
-const VERSION = 'bd-1.0.1';
+const VERSION = 'bd-1.0.2';
 const FONTS = 'bd-fonts';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
-  'js/app.js', 'js/dates.js', 'js/store.js', 'js/cloud.js', 'js/config.js', 'js/push.js', 'js/widget.js', 'js/templates.js',
+  'js/app.js', 'js/dates.js', 'js/store.js', 'js/cloud.js', 'js/config.js', 'js/push.js', 'js/templates.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/badge-96.png',
 ];
 
