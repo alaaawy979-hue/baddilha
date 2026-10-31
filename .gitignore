@@ -1,0 +1,5 @@
+supabase/.secrets.env
+supabase/.temp/
+supabase/.branches/
+node_modules/
+.claude/

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>بدّلها</title>
+  <meta name="description" content="بدّلها — تذكير بمواعيد تغيير أغراض البيت، مع مزامنة بين الجوال والكمبيوتر">
+  <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="بدّلها">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    // تطبيق الثيم قبل الرسم لتفادي الوميض
+    try {
+      const p = JSON.parse(localStorage.getItem('bd.prefs.v1') || '{}');
+      if (p.theme && p.theme !== 'auto') document.documentElement.dataset.theme = p.theme;
+    } catch {}
+  </script>
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="top">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" width="40" height="40">
+      <div>
+        <h1>بدّلها</h1>
+        <p id="todayLabel" class="muted"></p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="installBtn" class="btn ghost small" hidden>تثبيت التطبيق</button>
+      <button id="syncBtn" class="icon-btn" title="المزامنة" aria-label="حالة المزامنة"><span class="sync-dot"></span></button>
+      <button id="settingsBtn" class="icon-btn" title="الإعدادات" aria-label="الإعدادات"></button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div id="banner"></div>
+    <section id="hero" aria-live="polite"></section>
+    <section id="stats" class="stats" role="tablist" aria-label="تصفية"></section>
+    <div class="toolbar">
+      <label class="search">
+        <span class="search-icon" aria-hidden="true"></span>
+        <input id="search" type="search" placeholder="ابحث… (اضغط / )" autocomplete="off">
+      </label>
+      <div id="rooms" class="chips scroll" aria-label="الأماكن"></div>
+    </div>
+    <section id="list" class="grid"></section>
+    <section id="empty" hidden></section>
+  </main>
+
+  <button id="fab" class="fab" aria-label="إضافة"><span></span><b>إضافة</b></button>
+
+  <div id="sheet" class="sheet-wrap" hidden>
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
