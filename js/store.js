@@ -186,6 +186,17 @@ export async function sync() {
       pushed = true;
     }
     const res = await rpc('items_pull', { p_key: meta.key, p_since: meta.rev || 0 });
+    // السحابة رجعت أقدم مما شفناه = انمسحت أو انعادت من الصفر: نرفع كل ما عندنا من جديد
+    if ((res.rev || 0) < (meta.rev || 0)) {
+      console.warn('cloud was reset — re-uploading local items');
+      meta.rev = 0;
+      meta.readToken = null;
+      for (const it of items.values()) meta.dirty[it.id] = it.updated;
+      saveAll();
+      again = true;
+      setStatus('syncing');
+      return;
+    }
     for (const r of res.items || []) {
       const local = items.get(r.id);
       if (local && local.updated > r.updated) continue;
@@ -200,7 +211,7 @@ export async function sync() {
     setStatus('ok');
   } catch (e) {
     console.warn('sync failed', e);
-    setStatus(navigator.onLine === false ? 'offline' : 'error', e.detail || e.message);
+    setStatus(navigator.onLine === false ? 'offline' : 'error', e.message);
   } finally {
     syncing = false;
     if (again) { again = false; scheduleSync(200); }

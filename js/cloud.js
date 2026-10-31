@@ -14,11 +14,19 @@ export async function rpc(name, args = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20000);
   try {
-    const r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/rpc/${name}`, {
-      method: 'POST', headers: headers(), body: JSON.stringify(args), signal: ctrl.signal,
-    });
+    let r;
+    try {
+      r = await fetch(`${CONFIG.supabaseUrl}/rest/v1/rpc/${name}`, {
+        method: 'POST', headers: headers(), body: JSON.stringify(args), signal: ctrl.signal,
+      });
+    } catch {
+      // انقطاع شبكة أو الخادم غير متاح — رسالة مفهومة بدل "Failed to fetch"
+      throw Object.assign(new Error(navigator.onLine === false
+        ? 'ما فيه إنترنت — بيتزامن تلقائيًا أول ما يرجع الاتصال'
+        : 'تعذّر الاتصال بالسحابة — جرّب بعد شوي'), { network: true });
+    }
     if (!r.ok) {
-      const err = new Error(`${name} ${r.status}`);
+      const err = new Error(r.status >= 500 ? 'السحابة مشغولة — جرّب بعد شوي' : 'تعذّر تنفيذ الطلب');
       err.status = r.status;
       err.detail = await r.text().catch(() => '');
       throw err;

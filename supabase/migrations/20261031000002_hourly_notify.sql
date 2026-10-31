@@ -8,8 +8,8 @@ select cron.schedule(
   '5 * * * *',
   $$
   select net.http_post(
-    url := 'https://ptaozrnoqaqmcwgxkegi.supabase.co/functions/v1/notify',
-    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0YW96cm5vcWFxbWN3Z3hrZWdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0NDMwODQsImV4cCI6MjEwOTAxOTA4NH0.R4NeS-by0oolwJDgjPkK0Ph0Z0WF8dIE7nJSc-9bl_o'),
+    url := 'https://wlybsvlkzcdmkeiofglq.supabase.co/functions/v1/notify',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndseWJzdmxremNkbWtlaW9mZ2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0NDM5NjQsImV4cCI6MjEwOTAxOTk2NH0.f88QjUrTYdj3sCI0OWJm4oP8vsuZ7nXPjUcpKRyi-ow'),
     body := '{}'::jsonb,
     timeout_milliseconds := 30000
   );
