@@ -789,21 +789,38 @@ async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   const hadController = !!navigator.serviceWorker.controller;
   let reloading = false;
+  // نسخة جديدة نزلت: نعيد التحميل (وننتظر إذا كانت نافذة تعديل مفتوحة حتى لا يضيع شي)
+  const reloadNow = () => {
+    if (reloading) return;
+    reloading = true;
+    try { sessionStorage.setItem('bd.updated', '1'); } catch {}
+    location.reload();
+  };
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (hadController && !reloading) { reloading = true; location.reload(); }
+    if (!hadController) return;
+    if ($('#sheet').hidden) reloadNow(); else onSheetClose = reloadNow;
   });
   navigator.serviceWorker.addEventListener('message', (e) => {
     if (e.data?.type === 'open' && e.data.id) openDetail(e.data.id);
   });
   try {
     const reg = await navigator.serviceWorker.register('sw.js');
-    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+    // يفحص التحديثات عند كل رجوع للتطبيق (مهم للآيفون لأن التطبيق يبقى مفتوحًا بالخلفية)، وكل ساعة
+    const check = () => reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+    setInterval(check, 60 * 60 * 1000);
   } catch (e) { console.warn('SW', e); }
 }
 
 // ===== التشغيل =====
 function start() {
   applyTheme();
+  try {
+    if (sessionStorage.getItem('bd.updated')) {
+      sessionStorage.removeItem('bd.updated');
+      setTimeout(() => toast(`✨ تم تحديث بدّلها إلى ${VERSION}`), 600);
+    }
+  } catch {}
   bind();
   S.subscribe((what) => { if (what === 'status') renderStatus(); else render(); });
   render();

@@ -1,5 +1,5 @@
 // بدّلها — عامل الخدمة: يشتغل بدون إنترنت + يستقبل التنبيهات
-const VERSION = 'bd-1.1.1';
+const VERSION = 'bd-1.1.2';
 const FONTS = 'bd-fonts';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
