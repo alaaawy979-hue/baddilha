@@ -42,13 +42,22 @@ function saveAll() {
 
 // ===== القراءة =====
 export function get(id) {
-  const it = items.get(id);
-  return it && !it.deleted ? it : null;
+  return sane(items.get(id));
+}
+
+// يصلح أي عنصر ناقص (مثلًا وصل تالفًا من جهاز آخر) بدل ما يكسر الشاشة كلها
+function sane(i) {
+  if (!i || i.deleted || !i.id) return null;
+  if (!D.parse(i.last)) return null;
+  const every = i.every && +i.every.n > 0 && 'dwmy'.includes(i.every.unit) ? i.every : { n: 1, unit: 'y' };
+  const fixed = { ...i, name: String(i.name || 'بدون اسم'), every, remind: Array.isArray(i.remind) ? i.remind : [7, 0] };
+  if (!D.parse(fixed.next)) fixed.next = D.addInterval(fixed.last, every);
+  return fixed;
 }
 
 export function list() {
   return [...items.values()]
-    .filter((i) => !i.deleted)
+    .map(sane).filter(Boolean)
     .sort((a, b) => (a.next < b.next ? -1 : a.next > b.next ? 1 : a.name.localeCompare(b.name, 'ar')));
 }
 

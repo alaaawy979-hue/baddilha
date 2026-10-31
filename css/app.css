@@ -210,6 +210,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px max(16px, env(safe-area-
   position: absolute; top: 12px; inset-inline-end: 12px; opacity: 0; transition: opacity .15s;
 }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+.calm .card { animation: none; }
 
 /* ===== الحالة الفارغة ===== */
 .empty { text-align: center; padding: 40px 16px; }
@@ -250,7 +251,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px max(16px, env(safe-area-
 .sheet-wrap { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
 .sheet-backdrop { position: absolute; inset: 0; background: rgba(2, 6, 16, .55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: fade .2s ease; }
 .sheet {
-  position: relative; width: 100%; max-width: 620px; max-height: 92vh; overflow-y: auto; overscroll-behavior: contain;
+  position: relative; width: 100%; max-width: 620px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   background: var(--sheet); border: 1px solid var(--line); border-bottom: 0;
   border-radius: 28px 28px 0 0; padding: 8px 20px calc(24px + env(safe-area-inset-bottom));
   box-shadow: 0 -20px 60px rgba(0,0,0,.4);
@@ -371,10 +372,18 @@ h4.sec { margin: 18px 0 8px; font-size: .9rem; color: var(--muted); font-weight:
 
 /* ===== الجوال ===== */
 @media (max-width: 640px) {
-  .hero { grid-template-columns: 1fr; text-align: center; padding: 20px 18px; justify-items: center; }
-  .hero .kicker { justify-content: center; }
-  .hero .hero-actions { justify-content: center; }
-  .hero .ring { width: 150px; height: 150px; }
+  .hero { grid-template-columns: auto 1fr; gap: 14px; padding: 16px; border-radius: 22px; }
+  .hero .ring { width: 104px; height: 104px; }
+  .hero .ring-center b { font-size: 1.6rem; }
+  .hero .ring-center small { font-size: .7rem; margin-top: 2px; }
+  .hero h2 { font-size: 1.2rem; }
+  .hero .rel { font-size: .95rem; }
+  .hero .dates { font-size: .78rem; margin-top: 2px; }
+  .hero .hero-actions { margin-top: 10px; }
+  .hero .hero-actions .btn { height: 36px; padding: 0 12px; }
+  main { padding-top: 12px; }
+  .top { padding-top: calc(10px + env(safe-area-inset-top)); padding-bottom: 10px; }
+  .card { padding: 14px; }
   .stats { grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .stat { padding: 10px 8px; text-align: center; }
   .stat b { font-size: 1.25rem; }

@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       `DTSTART;VALUE=DATE:${ymd(it.next)}`, `DTEND;VALUE=DATE:${ymd(addDay(it.next))}`,
       `SUMMARY:${esc(`${it.emoji || '🔁'} تغيير ${it.name}`)}`, 'TRANSP:TRANSPARENT');
     if (desc) lines.push(`DESCRIPTION:${esc(desc)}`);
-    const reminders = Array.isArray(it.remind) && it.remind.length ? it.remind : [7, 0];
+    const reminders = Array.isArray(it.remind) ? it.remind : [7, 0];
     for (const d of reminders.slice(0, 4)) {
       lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc(`تغيير ${it.name}`)}`, `TRIGGER:${trigger(d)}`, 'END:VALARM');
     }

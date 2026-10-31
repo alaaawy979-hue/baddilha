@@ -31,8 +31,15 @@ const ICON = {
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const numFmt = () => new Intl.NumberFormat(S.prefs.digits === 'arab' ? 'ar-u-nu-arab' : 'en-US', { useGrouping: false });
-const num = (n) => numFmt().format(n);
+const fmts = {};
+const num = (n) => (fmts[S.prefs.digits] ||= new Intl.NumberFormat(S.prefs.digits === 'arab' ? 'ar-u-nu-arab' : 'en-US', { useGrouping: false })).format(n);
+// يحدّث العنصر فقط إذا تغيّر محتواه — يمنع إعادة الحركات والوميض مع كل حرف بحث أو مزامنة
+function setHTML(el, html) {
+  if (el._html === html) return false;
+  el._html = html;
+  el.innerHTML = html;
+  return true;
+}
 const greg = (s, style) => D.gregorian(s, S.prefs.digits, style);
 const hij = (s) => D.hijri(s, S.prefs.digits);
 const rel = (next) => D.relText(next, D.today(), num);
@@ -57,6 +64,11 @@ async function copy(text) {
 }
 
 function download(name, text, type) {
+  // داخل تطبيق الآيفون المثبّت لا تعمل التنزيلات — نفتح الملف فيعرض iOS خيار الإضافة
+  if (P.isIOS() && type === 'text/calendar') {
+    window.open(`data:text/calendar;charset=utf-8,${encodeURIComponent(text)}`, '_blank');
+    return;
+  }
   const url = URL.createObjectURL(new Blob([text], { type }));
   const a = Object.assign(document.createElement('a'), { href: url, download: name });
   document.body.appendChild(a); a.click(); a.remove();
@@ -83,6 +95,8 @@ function render() {
   $('#todayLabel').textContent = `${greg(today)} · ${hij(today)}`;
 
   const all = S.list().map(decorate);
+  const rooms = S.rooms();
+  if (view.room && !rooms.includes(view.room)) view.room = '';
   const counts = {
     all: all.length,
     overdue: all.filter((i) => i.days <= 0).length,
@@ -96,12 +110,11 @@ function render() {
   const stats = [
     ['all', 'الكل'], ['overdue', 'حان وقتها'], ['week', 'خلال أسبوع'], ['month', 'خلال شهر'],
   ];
-  $('#stats').innerHTML = all.length ? stats.map(([f, l]) =>
-    `<button class="stat" role="tab" data-f="${f}" aria-selected="${view.filter === f}"><b>${num(counts[f])}</b><span>${l}</span></button>`).join('') : '';
+  setHTML($('#stats'), all.length ? stats.map(([f, l]) =>
+    `<button class="stat" role="tab" data-f="${f}" aria-selected="${view.filter === f}"><b>${num(counts[f])}</b><span>${l}</span></button>`).join('') : '');
 
-  const rooms = S.rooms();
-  $('#rooms').innerHTML = rooms.length > 1 ? [['', 'كل الأماكن'], ...rooms.map((r) => [r, r])].map(([v, l]) =>
-    `<button class="chip" data-room="${esc(v)}" aria-pressed="${view.room === v}">${esc(l)}</button>`).join('') : '';
+  setHTML($('#rooms'), rooms.length > 1 ? [['', 'كل الأماكن'], ...rooms.map((r) => [r, r])].map(([v, l]) =>
+    `<button class="chip" data-room="${esc(v)}" aria-pressed="${view.room === v}">${esc(l)}</button>`).join('') : '');
   $('.toolbar').hidden = !all.length;
 
   const q = view.q.trim().toLowerCase();
@@ -111,7 +124,9 @@ function render() {
     (!view.room || i.room === view.room) &&
     (!q || `${i.name} ${i.room} ${i.notes}`.toLowerCase().includes(q)));
 
-  $('#list').innerHTML = shown.map((i, n) => `
+  const list = $('#list');
+  const first = !list._html;
+  setHTML(list, shown.map((i, n) => `
     <button class="card u-${i.u}" data-id="${i.id}" style="--i:${Math.min(n, 12)}">
       <div class="card-top">
         <div class="emoji">${esc(i.emoji)}</div>
@@ -123,7 +138,8 @@ function render() {
       </div>
       <div class="bar"><i style="width:${Math.round(i.prog * 100)}%"></i></div>
       <div class="card-bottom"><span class="rel">${esc(rel(i.next))}</span><span class="date">${esc(greg(i.next, 'short'))}</span></div>
-    </button>`).join('');
+    </button>`).join(''));
+  list.classList.toggle('calm', !first);
 
   const empty = $('#empty');
   if (!all.length) {
@@ -150,10 +166,10 @@ function render() {
 function renderHero(all) {
   const hero = $('#hero');
   const it = all[0];
-  if (!it) { hero.innerHTML = ''; return; }
+  if (!it) { setHTML(hero, ''); return; }
   const C = 2 * Math.PI * 54;
   const label = it.days < 0 ? 'أقرب تغيير — متأخر' : it.days === 0 ? 'موعد التغيير اليوم' : 'أقرب تغيير';
-  hero.innerHTML = `
+  const changed = setHTML(hero, `
     <div class="hero u-${it.u}" style="--u:var(--${it.u})" data-id="${it.id}">
       <div class="ring">
         <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="54" fill="none" stroke-width="9"/>
@@ -171,7 +187,8 @@ function renderHero(all) {
           <button class="btn small" data-open="${it.id}">التفاصيل</button>
         </div>
       </div>
-    </div>`;
+    </div>`);
+  if (!changed) return;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const v = hero.querySelector('.val'); if (v) v.style.strokeDashoffset = v.dataset.off;
   }));
@@ -182,11 +199,11 @@ async function renderBanner(count) {
   const box = $('#banner');
   let html = '';
   if (P.isIOS() && !P.isStandalone() && !bannerDismissed.install) {
-    html = `<div class="banner" data-b="install"><span style="font-size:1.4rem">📲</span><div class="grow"><b>ثبّت بدّلها على الشاشة الرئيسية</b><br>اضغط زر المشاركة <b>⬆︎</b> ثم «إضافة إلى الشاشة الرئيسية» — ضروري عشان توصلك التنبيهات.</div><button class="x" aria-label="إخفاء">×</button></div>`;
+    html = `<div class="banner" data-b="install"><span style="font-size:1.4rem">📲</span><div class="grow"><b>ثبّت بدّلها على الشاشة الرئيسية أولًا</b><br>اضغط زر المشاركة <b>⬆︎</b> ثم «إضافة إلى الشاشة الرئيسية»، وافتحه من الأيقونة. التنبيهات تشتغل من التطبيق المثبّت فقط، وما تضيفه هنا في Safari يبقى في Safari.</div><button class="x" aria-label="إخفاء">×</button></div>`;
   } else if (count && !bannerDismissed.push && (await P.pushState()) === 'off') {
     html = `<div class="banner" data-b="push"><span style="font-size:1.4rem">🔔</span><div class="grow"><b>فعّل التنبيهات</b> عشان يذكّرك قبل موعد التغيير حتى لو التطبيق مقفل.</div><button class="btn primary small" data-act="enable-push">تفعيل</button><button class="x" aria-label="إخفاء">×</button></div>`;
   }
-  box.innerHTML = html;
+  setHTML(box, html);
 }
 
 // ===== النافذة =====
@@ -443,7 +460,7 @@ function icsFor(it) {
   return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Baddilha//AR', 'BEGIN:VEVENT', `UID:${it.id}-${it.next}@baddilha`, `DTSTAMP:${stamp}`,
     `DTSTART;VALUE=DATE:${ymd(it.next)}`, `DTEND;VALUE=DATE:${ymd(D.addDays(it.next, 1))}`,
     `SUMMARY:${e(`${it.emoji} تغيير ${it.name}`)}`, it.notes ? `DESCRIPTION:${e(it.notes)}` : '',
-    ...(it.remind?.length ? it.remind : [7, 0]).flatMap((d) => ['BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${e(it.name)}`, `TRIGGER:${trig(d)}`, 'END:VALARM']),
+    ...(Array.isArray(it.remind) ? it.remind : [7, 0]).flatMap((d) => ['BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${e(it.name)}`, `TRIGGER:${trig(d)}`, 'END:VALARM']),
     'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
 }
 
@@ -623,6 +640,8 @@ function applyTheme() {
   const t = S.prefs.theme;
   if (t === 'auto') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = t;
+  const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  $$('meta[name="theme-color"]').forEach((m) => { m.content = dark ? '#0b1220' : '#f4f6fb'; });
 }
 
 // ===== حالة المزامنة =====
