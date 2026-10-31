@@ -74,6 +74,8 @@ function download(name, text, type) {
 }
 
 const view = { filter: 'all', room: '', q: '' };
+// التنبيهات والمزامنة تحتاج السحابة — بدونها لا نَعِد بها في النصوص
+const PUSH = cloudReady() && !!CONFIG.vapidPublicKey;
 
 function decorate(it) {
   const days = D.diffDays(D.today(), it.next);
@@ -201,8 +203,8 @@ async function renderBanner(count) {
   if (!P.isStandalone() && !bannerDismissed.install) {
     const ios = P.isIOS();
     html = `<div class="banner" data-b="install"><span style="font-size:1.4rem">📲</span><div class="grow"><b>ثبّت بدّلها كتطبيق</b><br>${ios
-      ? 'التنبيهات على الآيفون تشتغل من التطبيق المثبّت فقط، وما تضيفه هنا في Safari يبقى في Safari.'
-      : 'يصير له أيقونة ويشتغل بدون إنترنت وتوصلك التنبيهات.'}</div><button class="btn primary small" data-act="install">طريقة التثبيت</button><button class="x" aria-label="إخفاء">×</button></div>`;
+      ? (PUSH ? 'التنبيهات على الآيفون تشتغل من التطبيق المثبّت فقط، ' : 'افتحه دايم من الأيقونة — ') + 'وما تضيفه هنا في Safari يبقى في Safari.'
+      : 'يصير له أيقونة ويشتغل بدون إنترنت' + (PUSH ? ' وتوصلك التنبيهات.' : '.')}</div><button class="btn primary small" data-act="install">طريقة التثبيت</button><button class="x" aria-label="إخفاء">×</button></div>`;
   } else if (count && !bannerDismissed.push && (await P.pushState()) === 'off') {
     html = `<div class="banner" data-b="push"><span style="font-size:1.4rem">🔔</span><div class="grow"><b>فعّل التنبيهات</b> عشان يذكّرك قبل موعد التغيير حتى لو التطبيق مقفل.</div><button class="btn primary small" data-act="enable-push">تفعيل</button><button class="x" aria-label="إخفاء">×</button></div>`;
   }
@@ -477,6 +479,7 @@ async function openSettings(focus) {
         ${P.isStandalone() ? '' : '<button class="btn small" data-act="install">طريقة التثبيت</button>'}
       </div>
     </section>
+${cloud ? `
     <section class="set-group" id="sec-sync">
       <h3>${ICON.sync.replace('<svg', '<svg width="18" height="18"')} المزامنة بين أجهزتك <span class="pill ${S.status.state === 'ok' ? 'on' : S.status.state === 'error' ? 'warn' : ''}">${statusTxt}${S.status.online ? ' · لحظي' : ''}</span></h3>
       ${cloud ? `
@@ -513,6 +516,13 @@ async function openSettings(focus) {
         <div class="chips" id="defRemind">${REMIND_OPTIONS.map((o) => `<button class="chip" data-d="${o.d}" aria-pressed="${S.prefs.remind.includes(o.d)}">${o.label}</button>`).join('')}</div>
       </div>
     </section>
+` : `
+    <section class="set-group">
+      <h3>${ICON.bell.replace('<svg', '<svg width="18" height="18"')} التذكير الافتراضي</h3>
+      <p>يُستخدم لكل شي جديد تضيفه، ويطلع كتنبيه لما تضغط «أضف للتقويم» في صفحة أي شي.</p>
+      <div class="chips" id="defRemind">${REMIND_OPTIONS.map((o) => `<button class="chip" data-d="${o.d}" aria-pressed="${S.prefs.remind.includes(o.d)}">${o.label}</button>`).join('')}</div>
+    </section>
+`}
 
     ${feedUrl ? `<section class="set-group">
       <h3>${ICON.cal.replace('<svg', '<svg width="18" height="18"')} تقويم الجوال والكمبيوتر</h3>
@@ -608,13 +618,14 @@ async function openSettings(focus) {
 const platform = () => (P.isIOS() ? 'ios' : /Android/i.test(navigator.userAgent) ? 'android' : 'desktop');
 let installPrompt = null;
 
+const PUSH_STEP = PUSH ? '، وفعّل التنبيهات من الإعدادات' : '';
 const STEPS = {
   ios: ['افتح الرابط في متصفح <b>Safari</b>', 'اضغط زر المشاركة <b>⬆︎</b> أسفل الشاشة',
-    'اختر <b>«إضافة إلى الشاشة الرئيسية»</b> ثم <b>«إضافة»</b>', 'افتح بدّلها من الأيقونة الجديدة، وفعّل التنبيهات من الإعدادات'],
+    'اختر <b>«إضافة إلى الشاشة الرئيسية»</b> ثم <b>«إضافة»</b>', 'افتح بدّلها من الأيقونة الجديدة دائمًا' + PUSH_STEP],
   android: ['افتح الرابط في متصفح <b>Chrome</b>', 'اضغط <b>«تثبيت التطبيق»</b> إذا ظهر لك، أو القائمة <b>⋮</b> ← <b>«تثبيت التطبيق»</b>',
-    'افتح بدّلها من الأيقونة، وفعّل التنبيهات من الإعدادات'],
+    'افتح بدّلها من الأيقونة' + PUSH_STEP],
   desktop: ['افتح الرابط في <b>Edge</b> أو <b>Chrome</b>', 'اضغط زر <b>«تثبيت التطبيق»</b> أعلى الصفحة، أو أيقونة التثبيت في شريط العنوان',
-    'يصير له أيقونة في قائمة ابدأ وشريط المهام، وتوصلك التنبيهات'],
+    'يصير له أيقونة في قائمة ابدأ وشريط المهام' + (PUSH ? '، وتوصلك التنبيهات' : '')],
 };
 const PLATFORM_NAMES = { ios: 'آيفون', android: 'أندرويد', desktop: 'كمبيوتر' };
 
@@ -632,7 +643,7 @@ function openInstallGuide() {
   const stepsHTML = (p) => `<ol class="steps big">${STEPS[p].map((s) => `<li>${s}</li>`).join('')}</ol>`;
   openSheet(`
     ${head('ثبّت بدّلها على جهازك')}
-    <p class="muted" style="margin-top:-6px">يشتغل كتطبيق كامل على الآيفون والأندرويد والكمبيوتر — بأيقونة، وبدون إنترنت، ومع تنبيهات.</p>
+    <p class="muted" style="margin-top:-6px">يشتغل كتطبيق كامل على الآيفون والأندرويد والكمبيوتر — بأيقونة، وبدون إنترنت${PUSH ? '، ومع تنبيهات' : ''}.</p>
     ${installPrompt ? `<button class="btn primary block" id="doInstall" style="height:54px;margin-bottom:14px">${ICON.down} تثبيت الآن</button>` : ''}
     <div class="chips" id="plat" style="margin-bottom:8px">${Object.keys(STEPS).map((p) =>
       `<button class="chip" data-p="${p}" aria-pressed="${p === shown}">${PLATFORM_NAMES[p]}</button>`).join('')}</div>
@@ -696,6 +707,7 @@ function renderStatus() {
 // ===== الأحداث =====
 function bind() {
   $('#settingsBtn').innerHTML = ICON.gear;
+  $('#syncBtn').hidden = !cloudReady();
   $('.search-icon').innerHTML = ICON.search;
   $('#fab span').innerHTML = ICON.plus;
   if (matchMedia('(hover: hover) and (pointer: fine)').matches) $('#search').placeholder = 'ابحث… (اضغط / للبحث، N للإضافة)';
