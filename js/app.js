@@ -2,7 +2,7 @@ import * as D from './dates.js';
 import * as S from './store.js';
 import { CONFIG, VERSION } from './config.js';
 import { cloudReady } from './cloud.js';
-import { TEMPLATES, ROOMS, EMOJIS, REMIND_OPTIONS } from './templates.js';
+import { EMOJIS, REMIND_OPTIONS } from './templates.js';
 import * as P from './push.js';
 
 // ===== أيقونات =====
@@ -119,7 +119,7 @@ function render() {
   const shown = all.filter((i) =>
     (view.filter === 'all' || (view.filter === 'overdue' && i.days <= 0) ||
       (view.filter === 'week' && i.days >= 0 && i.days <= 7) || (view.filter === 'month' && i.days >= 0 && i.days <= 30)) &&
-    (!view.room || i.room === view.room) &&
+    (!view.room || S.roomKey(i.room) === view.room) &&
     (!q || `${i.name} ${i.room} ${i.notes}`.toLowerCase().includes(q)));
 
   const list = $('#list');
@@ -130,12 +130,16 @@ function render() {
         <div class="emoji">${esc(i.emoji)}</div>
         <div class="meta">
           <h3>${esc(i.name)}</h3>
-          <span class="sub">${[i.room, D.everyText(i.every, num)].filter(Boolean).map(esc).join(' · ')}</span>
+          ${i.room ? `<span class="sub">${esc(i.room)}</span>` : ''}
         </div>
         <div class="days"><b>${i.days === 0 ? '!' : num(Math.abs(i.days))}</b><small>${i.days === 0 ? 'اليوم' : unitLabel(i.days)}</small></div>
       </div>
       <div class="bar"><i style="width:${Math.round(i.prog * 100)}%"></i></div>
-      <div class="card-bottom"><span class="rel">${esc(rel(i.next))}</span><span class="date">${esc(greg(i.next, 'short'))}</span></div>
+      <div class="facts">
+        <div><span>آخر تغيير</span><b>${esc(greg(i.last, 'short'))}</b></div>
+        <div><span>المدة</span><b>${esc(D.everyText(i.every, num))}</b></div>
+        <div><span>موعد التغيير</span><b>${esc(greg(i.next, 'short'))}</b><em>${esc(rel(i.next))}</em></div>
+      </div>
     </button>`).join(''));
   list.classList.toggle('calm', !first);
 
@@ -146,10 +150,8 @@ function render() {
       <div class="empty">
         <div class="art">🔁</div>
         <h2>ولا شي يحتاج تغيير… للحين</h2>
-        <p>أضف أي شي في البيت تغيّره كل فترة — فلتر، بطارية، مخدات — وبدّلها يحسب لك الموعد ويذكّرك قبله.</p>
+        <p>أضف أي شي تغيّره كل فترة — فلتر، بطارية، مخدات، زيت السيارة — وبدّلها يحسب لك موعد التغيير ويذكّرك قبله.</p>
         <button class="btn primary" data-act="add">${ICON.plus} أضف أول شي</button>
-        <h4 class="sec">أو اختر من الشائع:</h4>
-        <div class="tpl-grid">${TEMPLATES.map((t, k) => `<button class="chip" data-tpl="${k}">${t.emoji} ${esc(t.name)}</button>`).join('')}</div>
         ${cloudReady() ? `<p style="margin-top:22px">عندك بياناتك على جهاز ثاني؟ <button class="link-btn" data-act="join">اربط هذا الجهاز</button></p>` : ''}
       </div>`;
   } else if (!shown.length) {
@@ -196,8 +198,11 @@ let bannerDismissed = (() => { try { return JSON.parse(sessionStorage.getItem('b
 async function renderBanner(count) {
   const box = $('#banner');
   let html = '';
-  if (P.isIOS() && !P.isStandalone() && !bannerDismissed.install) {
-    html = `<div class="banner" data-b="install"><span style="font-size:1.4rem">📲</span><div class="grow"><b>ثبّت بدّلها على الشاشة الرئيسية أولًا</b><br>اضغط زر المشاركة <b>⬆︎</b> ثم «إضافة إلى الشاشة الرئيسية»، وافتحه من الأيقونة. التنبيهات تشتغل من التطبيق المثبّت فقط، وما تضيفه هنا في Safari يبقى في Safari.</div><button class="x" aria-label="إخفاء">×</button></div>`;
+  if (!P.isStandalone() && !bannerDismissed.install) {
+    const ios = P.isIOS();
+    html = `<div class="banner" data-b="install"><span style="font-size:1.4rem">📲</span><div class="grow"><b>ثبّت بدّلها كتطبيق</b><br>${ios
+      ? 'التنبيهات على الآيفون تشتغل من التطبيق المثبّت فقط، وما تضيفه هنا في Safari يبقى في Safari.'
+      : 'يصير له أيقونة ويشتغل بدون إنترنت وتوصلك التنبيهات.'}</div><button class="btn primary small" data-act="install">طريقة التثبيت</button><button class="x" aria-label="إخفاء">×</button></div>`;
   } else if (count && !bannerDismissed.push && (await P.pushState()) === 'off') {
     html = `<div class="banner" data-b="push"><span style="font-size:1.4rem">🔔</span><div class="grow"><b>فعّل التنبيهات</b> عشان يذكّرك قبل موعد التغيير حتى لو التطبيق مقفل.</div><button class="btn primary small" data-act="enable-push">تفعيل</button><button class="x" aria-label="إخفاء">×</button></div>`;
   }
@@ -235,11 +240,9 @@ function openEditor(src = {}) {
     history: src.history,
   };
   let custom = !BIG.concat(SMALL).some((o) => same(o, st.every));
-  const roomList = [...new Set([...S.rooms(), ...ROOMS])];
 
   openSheet(`
     ${head(editing ? 'تعديل' : 'إضافة شي جديد')}
-    ${editing ? '' : `<div class="chips scroll" style="margin-bottom:16px">${TEMPLATES.map((t, k) => `<button type="button" class="chip" data-tpl="${k}">${t.emoji} ${esc(t.name)}</button>`).join('')}</div>`}
     <form id="ed" autocomplete="off">
       <div class="field">
         <label for="f-name">وش الشي اللي تغيّره؟</label>
@@ -251,8 +254,7 @@ function openEditor(src = {}) {
       </div>
       <div class="field">
         <label for="f-room">المكان (اختياري)</label>
-        <input class="input" id="f-room" list="roomList" maxlength="40" placeholder="المطبخ، السيارة…" value="${esc(st.room)}">
-        <datalist id="roomList">${roomList.map((r) => `<option value="${esc(r)}">`).join('')}</datalist>
+        <textarea class="input" id="f-room" rows="2" maxlength="300" placeholder="المطبخ، السيارة… (تقدر تنزل سطر)">${esc(st.room)}</textarea>
       </div>
       <div class="field">
         <label for="f-last">متى غيّرته آخر مرة؟</label>
@@ -326,14 +328,7 @@ function openEditor(src = {}) {
     root.addEventListener('click', (e) => {
       const t = e.target.closest('button');
       if (!t) return;
-      if (t.dataset.tpl != null) {
-        const tp = TEMPLATES[t.dataset.tpl];
-        st.name = tp.name; st.emoji = tp.emoji; st.room = tp.room; st.every = { ...tp.every };
-        f('f-name').value = st.name; f('f-room').value = st.room; f('f-emoji').textContent = st.emoji;
-        custom = !BIG.concat(SMALL).some((o) => same(o, st.every));
-        f('f-n').value = st.every.n; f('f-unit').value = st.every.unit;
-        paint(); updateResult(true); buzz();
-      } else if (t.id === 'f-emoji') {
+      if (t.id === 'f-emoji') {
         f('emojiGrid').hidden = !f('emojiGrid').hidden;
       } else if (t.dataset.e) {
         st.emoji = t.dataset.e; f('f-emoji').textContent = st.emoji; f('emojiGrid').hidden = true;
@@ -394,7 +389,7 @@ function openDetail(id) {
     <div style="--u:var(--${it.u})">
       <div class="detail-head u-${it.u}">
         <div class="emoji">${esc(it.emoji)}</div>
-        <div><h2>${esc(it.name)}</h2><span class="muted">${[it.room, D.everyText(it.every, num)].filter(Boolean).map(esc).join(' · ')}</span></div>
+        <div><h2>${esc(it.name)}</h2>${it.room ? `<div class="muted room-text">${esc(it.room)}</div>` : ''}</div>
       </div>
       <div class="countdown">
         <div><b>${num(Math.abs(it.days))}</b><span>${it.days < 0 ? 'يوم تأخير' : 'يوم'}</span></div>
@@ -474,6 +469,14 @@ async function openSettings(focus) {
 
   openSheet(`
     ${head('الإعدادات')}
+    <section class="set-group">
+      <h3>${ICON.link.replace('<svg', '<svg width="18" height="18"')} شارك بدّلها</h3>
+      <p>أرسل الرابط لأصحابك — كل واحد بياناته خاصة فيه ومستقلة.</p>
+      <div class="set-row">
+        <button class="btn primary small" data-act="share">${ICON.link} مشاركة الرابط</button>
+        ${P.isStandalone() ? '' : '<button class="btn small" data-act="install">طريقة التثبيت</button>'}
+      </div>
+    </section>
     <section class="set-group" id="sec-sync">
       <h3>${ICON.sync.replace('<svg', '<svg width="18" height="18"')} المزامنة بين أجهزتك <span class="pill ${S.status.state === 'ok' ? 'on' : S.status.state === 'error' ? 'warn' : ''}">${statusTxt}${S.status.online ? ' · لحظي' : ''}</span></h3>
       ${cloud ? `
@@ -601,6 +604,62 @@ async function openSettings(focus) {
   });
 }
 
+// ===== التثبيت والمشاركة =====
+const platform = () => (P.isIOS() ? 'ios' : /Android/i.test(navigator.userAgent) ? 'android' : 'desktop');
+let installPrompt = null;
+
+const STEPS = {
+  ios: ['افتح الرابط في متصفح <b>Safari</b>', 'اضغط زر المشاركة <b>⬆︎</b> أسفل الشاشة',
+    'اختر <b>«إضافة إلى الشاشة الرئيسية»</b> ثم <b>«إضافة»</b>', 'افتح بدّلها من الأيقونة الجديدة، وفعّل التنبيهات من الإعدادات'],
+  android: ['افتح الرابط في متصفح <b>Chrome</b>', 'اضغط <b>«تثبيت التطبيق»</b> إذا ظهر لك، أو القائمة <b>⋮</b> ← <b>«تثبيت التطبيق»</b>',
+    'افتح بدّلها من الأيقونة، وفعّل التنبيهات من الإعدادات'],
+  desktop: ['افتح الرابط في <b>Edge</b> أو <b>Chrome</b>', 'اضغط زر <b>«تثبيت التطبيق»</b> أعلى الصفحة، أو أيقونة التثبيت في شريط العنوان',
+    'يصير له أيقونة في قائمة ابدأ وشريط المهام، وتوصلك التنبيهات'],
+};
+const PLATFORM_NAMES = { ios: 'آيفون', android: 'أندرويد', desktop: 'كمبيوتر' };
+
+async function shareApp() {
+  const data = { title: 'بدّلها', text: 'بدّلها — يذكّرك بمواعيد تغيير أغراض البيت: الفلاتر، البطاريات، زيت السيارة وغيرها', url: CONFIG.appUrl };
+  if (navigator.share) {
+    try { await navigator.share(data); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  await copy(`${data.text}\n${data.url}`);
+  toast('تم نسخ الرابط — أرسله لأصحابك');
+}
+
+function openInstallGuide() {
+  let shown = platform();
+  const stepsHTML = (p) => `<ol class="steps big">${STEPS[p].map((s) => `<li>${s}</li>`).join('')}</ol>`;
+  openSheet(`
+    ${head('ثبّت بدّلها على جهازك')}
+    <p class="muted" style="margin-top:-6px">يشتغل كتطبيق كامل على الآيفون والأندرويد والكمبيوتر — بأيقونة، وبدون إنترنت، ومع تنبيهات.</p>
+    ${installPrompt ? `<button class="btn primary block" id="doInstall" style="height:54px;margin-bottom:14px">${ICON.down} تثبيت الآن</button>` : ''}
+    <div class="chips" id="plat" style="margin-bottom:8px">${Object.keys(STEPS).map((p) =>
+      `<button class="chip" data-p="${p}" aria-pressed="${p === shown}">${PLATFORM_NAMES[p]}</button>`).join('')}</div>
+    <div id="platSteps">${stepsHTML(shown)}</div>
+    <div class="banner" style="margin:6px 0 14px"><span style="font-size:1.3rem">🔒</span><div class="grow">بياناتك خاصة فيك — كل شخص يثبّت التطبيق له مساحته المستقلة، ولا أحد يشوف أغراضك.</div></div>
+    <button class="btn block" id="shareApp">${ICON.link} شارك التطبيق مع أصحابك</button>
+  `, (root) => {
+    $('#plat', root).onclick = (e) => {
+      const c = e.target.closest('[data-p]'); if (!c) return;
+      shown = c.dataset.p;
+      $$('#plat .chip', root).forEach((x) => x.setAttribute('aria-pressed', x === c));
+      $('#platSteps', root).innerHTML = stepsHTML(shown);
+    };
+    $('#shareApp', root).onclick = shareApp;
+    const btn = $('#doInstall', root);
+    if (btn) btn.onclick = installNow;
+  });
+}
+
+async function installNow() {
+  if (!installPrompt) return openInstallGuide();
+  installPrompt.prompt();
+  await installPrompt.userChoice.catch(() => {});
+  installPrompt = null;
+  closeSheet();
+}
+
 async function enablePushFlow() {
   try {
     await P.enablePush();
@@ -643,7 +702,7 @@ function bind() {
   else $('#search').placeholder = 'ابحث…';
 
   document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-close],[data-done],[data-open],[data-edit],[data-act],[data-tpl],.card,.hero,.stat,[data-room],.banner .x');
+    const t = e.target.closest('[data-close],[data-done],[data-open],[data-edit],[data-act],.card,.hero,.stat,[data-room],.banner .x');
     if (!t) return;
     if (t.matches('[data-close]')) return closeSheet();
     if (t.matches('[data-done]')) { e.stopPropagation(); return doDone(t.dataset.done); }
@@ -659,9 +718,10 @@ function bind() {
       if (a === 'add') return openEditor();
       if (a === 'join') return openSettings('#sec-sync');
       if (a === 'enable-push') return enablePushFlow();
+      if (a === 'install') return installPrompt ? installNow() : openInstallGuide();
+      if (a === 'share') return shareApp();
       return;
     }
-    if (t.matches('[data-tpl]') && !t.closest('.sheet')) return openEditor(TEMPLATES[t.dataset.tpl]);
     if (t.matches('.card, .hero')) return openDetail(t.dataset.id);
     if (t.matches('.stat')) { view.filter = view.filter === t.dataset.f ? 'all' : t.dataset.f; return render(); }
     if (t.matches('[data-room]')) { view.room = t.dataset.room; return render(); }
@@ -707,10 +767,10 @@ function bind() {
   setInterval(() => { if (D.today() !== day) { day = D.today(); render(); } }, 30000);
 
   // زر التثبيت (الكمبيوتر وأندرويد)
-  let deferred;
-  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; $('#installBtn').hidden = false; });
-  $('#installBtn').onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $('#installBtn').hidden = true; };
-  addEventListener('appinstalled', () => { $('#installBtn').hidden = true; toast('تم تثبيت بدّلها ✓'); });
+  $('#installBtn').hidden = P.isStandalone();
+  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+  $('#installBtn').onclick = () => (installPrompt ? installNow() : openInstallGuide());
+  addEventListener('appinstalled', () => { $('#installBtn').hidden = true; installPrompt = null; toast('تم تثبيت بدّلها ✓'); });
 }
 
 async function registerSW() {
@@ -747,6 +807,11 @@ function start() {
     openSettings('#sec-sync').then(() => { const i = $('#joinCode'); if (i) { i.value = m[1]; i.dispatchEvent(new Event('input')); } });
   }
   if (location.hash === '#add') { history.replaceState(null, '', location.pathname); openEditor(); }
+  else if (!m && !P.isStandalone()) {
+    let seen = false;
+    try { seen = localStorage.getItem('bd.guide') === '1'; localStorage.setItem('bd.guide', '1'); } catch {}
+    if (!seen) setTimeout(openInstallGuide, 700);
+  }
 }
 
 start();

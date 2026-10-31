@@ -61,8 +61,10 @@ export function list() {
     .sort((a, b) => (a.next < b.next ? -1 : a.next > b.next ? 1 : a.name.localeCompare(b.name, 'ar')));
 }
 
+// الأماكن للتصفية: السطر الأول من خانة المكان فقط، وإذا كان قصيرًا
+export const roomKey = (room) => String(room || '').split(/\r?\n/)[0].trim();
 export function rooms() {
-  return [...new Set(list().map((i) => i.room).filter(Boolean))];
+  return [...new Set(list().map((i) => roomKey(i.room)).filter((r) => r && r.length <= 24))];
 }
 
 // ===== الكتابة =====
@@ -89,7 +91,7 @@ export function upsert(data) {
     id: data.id || uuid(),
     name: String(data.name || '').trim().slice(0, 80),
     emoji: data.emoji || '🔁',
-    room: String(data.room || '').trim().slice(0, 40),
+    room: String(data.room || '').replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, 300),
     last: data.last || D.today(),
     every: { n: Math.max(1, Math.min(999, Math.round(+data.every?.n || 1))), unit: data.every?.unit || 'y' },
     nextManual: !!data.nextManual,

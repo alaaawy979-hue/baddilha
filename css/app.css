@@ -83,7 +83,8 @@ button { cursor: pointer; }
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+.brand > div { min-width: 0; }
 .brand img { border-radius: 12px; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
 .brand h1 { margin: 0; font-size: 1.25rem; line-height: 1.2; font-weight: 700; letter-spacing: 0; }
 .brand p { margin: 0; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -196,7 +197,14 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px max(16px, env(safe-area-
 }
 .card .meta { flex: 1; min-width: 0; }
 .card h3 { margin: 0; font-size: 1.05rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card .sub { font-size: .8rem; color: var(--muted); }
+.card .sub { display: block; font-size: .8rem; color: var(--muted); white-space: pre-line; line-height: 1.45; margin-top: 2px; }
+.room-text { white-space: pre-line; font-size: .9rem; line-height: 1.5; margin-top: 2px; }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.facts > div { min-width: 0; padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, var(--u) 6%, var(--input)); }
+.facts span { display: block; font-size: .7rem; color: var(--muted); margin-bottom: 2px; }
+.facts b { display: block; font-size: .82rem; font-weight: 600; line-height: 1.35; }
+.facts em { display: block; font-style: normal; font-size: .74rem; font-weight: 700; color: var(--u); margin-top: 2px; }
+#f-room { min-height: 64px; resize: vertical; }
 .days { text-align: center; min-width: 64px; }
 .days b { display: block; font-size: 1.6rem; line-height: 1.05; color: var(--u); font-weight: 700; font-variant-numeric: tabular-nums; }
 .days small { font-size: .72rem; color: var(--muted); }
@@ -348,6 +356,8 @@ h4.sec { margin: 18px 0 8px; font-size: .9rem; color: var(--muted); font-weight:
 .code-input { font-family: ui-monospace, "SF Mono", Consolas, monospace; letter-spacing: .15em; text-align: center; direction: ltr; text-transform: uppercase; font-size: 1.3rem; }
 .steps { margin: 6px 0 12px; padding-inline-start: 20px; color: var(--muted); font-size: .88rem; }
 .steps li { margin-bottom: 4px; }
+.steps.big { font-size: 1rem; color: var(--text); line-height: 1.7; padding-inline-start: 22px; }
+.steps.big li { margin-bottom: 8px; }
 .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: .78rem; background: var(--input); color: var(--muted); }
 .pill.on { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
 .pill.warn { background: color-mix(in srgb, var(--soon) 18%, transparent); color: var(--soon); }
@@ -389,7 +399,8 @@ h4.sec { margin: 18px 0 8px; font-size: .9rem; color: var(--muted); font-weight:
   .stat b { font-size: 1.25rem; }
   .stat span { font-size: .72rem; }
   .grid { grid-template-columns: 1fr; }
-  .brand p { max-width: 52vw; }
+  .brand p { max-width: none; }
+  #installBtn { display: none; }
   .seg.small { grid-template-columns: repeat(2, 1fr); }
 }
 @media (hover: hover) { .card:hover .quick { opacity: 1; } }
