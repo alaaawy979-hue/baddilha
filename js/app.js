@@ -103,7 +103,7 @@ function render() {
     week: all.filter((i) => i.days >= 0 && i.days <= 7).length,
     month: all.filter((i) => i.days >= 0 && i.days <= 30).length,
   };
-  P.setBadge(counts.overdue);
+  P.clearBadge();
 
   renderHero(all);
 

@@ -71,9 +71,7 @@ export async function testPush() {
   if (!r.ok) throw new Error('تعذّر الإرسال (' + r.status + ')');
 }
 
-export async function setBadge(n) {
-  try {
-    if (!('setAppBadge' in navigator)) return;
-    if (n > 0) await navigator.setAppBadge(n); else await navigator.clearAppBadge();
-  } catch {}
+// المستخدم ما يبي رقم على أيقونة التطبيق — نمسح أي رقم قديم
+export async function clearBadge() {
+  try { if ('clearAppBadge' in navigator) await navigator.clearAppBadge(); } catch {}
 }

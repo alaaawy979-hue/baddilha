@@ -1,5 +1,5 @@
 // بدّلها — عامل الخدمة: يشتغل بدون إنترنت + يستقبل التنبيهات
-const VERSION = 'bd-1.2.2';
+const VERSION = 'bd-1.2.3';
 const FONTS = 'bd-fonts';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
@@ -65,7 +65,7 @@ self.addEventListener('push', (e) => {
       data: { url: data.url || './', id: data.id },
     }),
     (async () => {
-      try { if (data.badge != null && self.navigator.setAppBadge) await self.navigator.setAppBadge(data.badge); } catch {}
+      try { if (self.navigator.clearAppBadge) await self.navigator.clearAppBadge(); } catch {}
     })(),
   ]));
 });
